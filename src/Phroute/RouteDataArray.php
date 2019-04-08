@@ -1,6 +1,7 @@
 <?php namespace Phroute\Phroute;
 
-class RouteDataArray implements RouteDataInterface {
+class RouteDataArray implements RouteDataInterface
+{
 
     /**
      * @var array

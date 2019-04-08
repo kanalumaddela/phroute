@@ -1,6 +1,7 @@
 <?php namespace Phroute\Phroute;
 
-class Route {
+class Route
+{
 
     /**
      * Constants for before and after filters

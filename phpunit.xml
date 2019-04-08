@@ -10,7 +10,7 @@
          stopOnFailure="true"
          syntaxCheck="false"
          bootstrap="vendor/autoload.php"
-        >
+>
     <testsuites>
         <testsuite name="Phroute Tests">
             <directory>./test/</directory>

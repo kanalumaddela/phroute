@@ -2,38 +2,40 @@
 
 namespace Phroute\Phroute\Dispatcher;
 
-use Phroute\Phroute\RouteCollector;
-use Phroute\Phroute\RouteParser;
+use PHPUnit_Framework_TestCase;
 use Phroute\Phroute\Dispatcher;
 use Phroute\Phroute\Route;
+use Phroute\Phroute\RouteCollector;
+use Phroute\Phroute\RouteParser;
 
-class Test {
-    
+class Test
+{
+
     public function route()
     {
         return 'testRoute';
     }
-    
+
     public function anyIndex()
     {
         return 'testRouteAnyIndex';
     }
-    
+
     public function anyTest()
     {
         return 'testRouteAnyTest';
     }
-    
+
     public function getTest()
     {
         return 'testRouteGetTest';
     }
-    
+
     public function postTest()
     {
         return 'testRoutePostTest';
     }
-    
+
     public function putTest()
     {
         return 'testRoutePutTest';
@@ -48,12 +50,12 @@ class Test {
     {
         return 'testRouteDeleteTest';
     }
-    
+
     public function headTest()
     {
         return 'testRouteHeadTest';
     }
-    
+
     public function optionsTest()
     {
         return 'testRouteOptionsTest';
@@ -86,11 +88,23 @@ class Test {
 
     public function getParameterOptionalRequired($param, $param2 = 'default')
     {
-        return $param . $param2;
+        return $param.$param2;
     }
 }
 
-class DispatcherTest extends \PHPUnit_Framework_TestCase {
+class DispatcherTest extends PHPUnit_Framework_TestCase
+{
+
+    /**
+     * @dataProvider provideFoundDispatchCases
+     */
+    public function testFoundDispatches($method, $uri, $callback, $expected)
+    {
+        $r = $this->router();
+        $callback($r);
+        $response = $this->dispatch($r, $method, $uri);
+        $this->assertEquals($expected, $response);
+    }
 
     /**
      * Set appropriate options for the specific Dispatcher class we're testing
@@ -106,18 +120,7 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
     }
 
     /**
-     * @dataProvider provideFoundDispatchCases
-     */
-    public function testFoundDispatches($method, $uri, $callback, $expected)
-    {
-        $r = $this->router();
-        $callback($r);
-        $response = $this->dispatch($r, $method, $uri);
-        $this->assertEquals($expected, $response);
-    }
-
-    /**
-     * @dataProvider provideNotFoundDispatchCases
+     * @dataProvider             provideNotFoundDispatchCases
      * @expectedException \Phroute\Phroute\Exception\HttpRouteNotFoundException
      * @expectedExceptionMessage does not exist
      */
@@ -133,35 +136,35 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
      */
     public function testMethodNotAllowedDispatches($method, $uri, $callback, $allowed)
     {
-        $this->setExpectedException('\Phroute\Phroute\Exception\HttpMethodNotAllowedException',"Allow: " . implode(', ', $allowed));
+        $this->setExpectedException('\Phroute\Phroute\Exception\HttpMethodNotAllowedException', "Allow: ".implode(', ', $allowed));
 
         $r = $this->router();
         $callback($r);
         $this->dispatch($r, $method, $uri);
     }
-    
+
     public function testStringObjectIsDispatched()
     {
         $r = $this->router();
-        
-        $r->addRoute('GET', '/foo', array(__NAMESPACE__.'\\Test','route'));
-        
+
+        $r->addRoute('GET', '/foo', [__NAMESPACE__.'\\Test', 'route']);
+
         $response = $this->dispatch($r, 'GET', '/foo');
-                
-        $this->assertEquals('testRoute',$response);
+
+        $this->assertEquals('testRoute', $response);
     }
-    
+
     public function testNamedRoutes()
     {
         $r = $this->router();
-        
-        $r->addRoute('GET', array('/foo', 'name'), array(__NAMESPACE__.'\\Test','route'));
-                
-        $this->assertEquals('foo',$r->route('name'));
-        
-        $r->addRoute('GET', array('/foo/{name}/{something:i}', 'name2'), array(__NAMESPACE__.'\\Test','route'));
-                
-        $this->assertEquals('foo/joe/something',$r->route('name2', ['joe', 'something']));
+
+        $r->addRoute('GET', ['/foo', 'name'], [__NAMESPACE__.'\\Test', 'route']);
+
+        $this->assertEquals('foo', $r->route('name'));
+
+        $r->addRoute('GET', ['/foo/{name}/{something:i}', 'name2'], [__NAMESPACE__.'\\Test', 'route']);
+
+        $this->assertEquals('foo/joe/something', $r->route('name2', ['joe', 'something']));
 
 
         $this->assertTrue($r->hasRoute('name2'));
@@ -172,44 +175,44 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
     {
         $r = $this->router();
 
-        $r->any( array('products/store/{store:i}?', 'products'), array(__NAMESPACE__.'\\Test','route'));
+        $r->any(['products/store/{store:i}?', 'products'], [__NAMESPACE__.'\\Test', 'route']);
 
         $this->assertEquals('products/store', $r->route('products'));
-        $this->assertEquals('products/store/1', $r->route('products', array(1)));
+        $this->assertEquals('products/store/1', $r->route('products', [1]));
     }
 
     public function testReverseRouteWithDashes()
     {
         $r = $this->router();
 
-        $r->any( array('product-catalogue/store/{store:i}?', 'products'), array(__NAMESPACE__.'\\Test','route'));
+        $r->any(['product-catalogue/store/{store:i}?', 'products'], [__NAMESPACE__.'\\Test', 'route']);
 
         $this->assertEquals('product-catalogue/store', $r->route('products'));
-        $this->assertEquals('product-catalogue/store/1', $r->route('products', array(1)));
+        $this->assertEquals('product-catalogue/store/1', $r->route('products', [1]));
     }
 
     public function testGroupsReverseRoutes()
     {
         $r = $this->router();
 
-        $r->group([], function($r) {
-            $r->any(['products/store/{store:i}?', 'products'], array(__NAMESPACE__.'\\Test','route'));
+        $r->group([], function ($r) {
+            $r->any(['products/store/{store:i}?', 'products'], [__NAMESPACE__.'\\Test', 'route']);
         });
 
         $this->assertEquals('products/store', $r->route('products'));
-        $this->assertEquals('products/store/1', $r->route('products', array(1)));
+        $this->assertEquals('products/store/1', $r->route('products', [1]));
     }
 
     public function testPrefixGroupsReverseRoutes()
     {
         $r = $this->router();
 
-        $r->group(['prefix' => 'product-catalogue/store'], function($r) {
-            $r->any(['items/{store:i}?', 'products'], array(__NAMESPACE__.'\\Test','route'));
+        $r->group(['prefix' => 'product-catalogue/store'], function ($r) {
+            $r->any(['items/{store:i}?', 'products'], [__NAMESPACE__.'\\Test', 'route']);
         });
 
         $this->assertEquals('product-catalogue/store/items', $r->route('products'));
-        $this->assertEquals('product-catalogue/store/items/1', $r->route('products', array(1)));
+        $this->assertEquals('product-catalogue/store/items/1', $r->route('products', [1]));
     }
 
     /**
@@ -220,7 +223,7 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
     {
         $r = $this->router();
 
-        $r->any( array('products/store/{store:i}', 'products'), array(__NAMESPACE__.'\\Test','route'));
+        $r->any(['products/store/{store:i}', 'products'], [__NAMESPACE__.'\\Test', 'route']);
 
         $this->assertEquals('products/store', $r->route('products'));
     }
@@ -231,8 +234,8 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
      */
     public function testDuplicateVariableNameError()
     {
-        $this->router()->addRoute('GET', '/foo/{test}/{test:\d+}', function() {
-            
+        $this->router()->addRoute('GET', '/foo/{test}/{test:\d+}', function () {
+
         });
     }
 
@@ -243,11 +246,11 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
     public function testDuplicateVariableRoute()
     {
         $r = $this->router();
-        $r->addRoute('GET', '/user/{id}', function() {
-            
+        $r->addRoute('GET', '/user/{id}', function () {
+
         }); // oops, forgot \d+ restriction ;)
-        $r->addRoute('GET', '/user/{name}', function() {
-            
+        $r->addRoute('GET', '/user/{name}', function () {
+
         });
     }
 
@@ -258,26 +261,27 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
     public function testDuplicateStaticRoute()
     {
         $r = $this->router();
-        $r->addRoute('GET', '/user', function() {
-            
+        $r->addRoute('GET', '/user', function () {
+
         });
-        $r->addRoute('GET', '/user', function() {
-            
+        $r->addRoute('GET', '/user', function () {
+
         });
     }
 
     /**
      * @expectedException \Phroute\Phroute\Exception\BadRouteException
-     * @expectedExceptionMessage Static route 'user/nikic' is shadowed by previously defined variable route 'user/([^/]+)' for method 'GET'
+     * @expectedExceptionMessage Static route 'user/nikic' is shadowed by previously defined variable route
+     *                           'user/([^/]+)' for method 'GET'
      */
     public function testShadowedStaticRoute()
     {
         $r = $this->router();
-        $r->addRoute('GET', '/user/{name}', function() {
-            
+        $r->addRoute('GET', '/user/{name}', function () {
+
         });
-        $r->addRoute('GET', '/user/nikic', function() {
-            
+        $r->addRoute('GET', '/user/nikic', function () {
+
         });
     }
 
@@ -286,27 +290,28 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
         $r = $this->router();
 
         $dispatchedFilter = false;
-        
-        $r->filter('test', function() use(&$dispatchedFilter){
+
+        $r->filter('test', function () use (&$dispatchedFilter) {
             $dispatchedFilter = true;
         });
 
-        $r->addRoute('GET', '/user', function() {
+        $r->addRoute('GET', '/user', function () {
             return 'dispatched';
-        }, array('before' => 'test'));
+        }, ['before' => 'test']);
 
         $this->assertEquals('dispatched', $this->dispatch($r, 'GET', '/user'));
-        
+
         $this->assertTrue($dispatchedFilter);
     }
-    
+
     public function testBeforeFiltersStringClass()
     {
         $r = $this->router();
-        
-        $r->filter('test', array(__NAMESPACE__ . '\Test','route'));
 
-        $r->addRoute('GET', '/user', function() {}, array('before' => 'test'));
+        $r->filter('test', [__NAMESPACE__.'\Test', 'route']);
+
+        $r->addRoute('GET', '/user', function () {
+        }, ['before' => 'test']);
 
         $this->assertEquals('testRoute', $this->dispatch($r, 'GET', '/user'));
     }
@@ -314,89 +319,89 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
     public function testBeforeFilterCancels()
     {
         $r = $this->router();
-        
-        $r->filter('test', function(){            
+
+        $r->filter('test', function () {
             return 'cancel';
         });
 
-        $r->addRoute('GET', '/user', function() {
+        $r->addRoute('GET', '/user', function () {
             return 'dispatched';
-        }, array('before' => 'test'));
+        }, ['before' => 'test']);
 
         $this->assertEquals('cancel', $this->dispatch($r, 'GET', '/user'));
     }
-    
-    
+
+
     public function testAfterFilters()
     {
         $r = $this->router();
 
         $dispatchedFilter = false;
-        
-        $r->filter('test', function($response) use(&$dispatchedFilter){
+
+        $r->filter('test', function ($response) use (&$dispatchedFilter) {
             $dispatchedFilter = true;
-            
-            return $response . ' filtered';
+
+            return $response.' filtered';
         });
 
-        $r->addRoute('GET', '/user', function() {
+        $r->addRoute('GET', '/user', function () {
             return 'test';
-        }, array('after' => 'test'));
+        }, ['after' => 'test']);
 
         $response = $this->dispatch($r, 'GET', '/user');
-        
+
         $this->assertTrue($dispatchedFilter);
-        
+
         $this->assertEquals('test filtered', $response);
     }
-    
+
     public function testFilterGroups()
     {
         $r = $this->router();
-        
+
         $dispatchedFilter = 0;
         $dispatchedFilter2 = 0;
-        
-        $r->filter('test', function() use(&$dispatchedFilter){
+
+        $r->filter('test', function () use (&$dispatchedFilter) {
             $dispatchedFilter++;
         });
-        
-        $r->filter('test2', function() use(&$dispatchedFilter2){
+
+        $r->filter('test2', function () use (&$dispatchedFilter2) {
             $dispatchedFilter2++;
         });
-        
-        $r->group(array('before' => 'test'), function($router){
-            $router->addRoute('GET', '/user', function() {
-            
+
+        $r->group(['before' => 'test'], function ($router) {
+            $router->addRoute('GET', '/user', function () {
+
             });
-            $router->group(array('before' => 'test2'), function($router){
-                $router->addRoute('GET', '/user2', function() {
+            $router->group(['before' => 'test2'], function ($router) {
+                $router->addRoute('GET', '/user2', function () {
 
                 });
             });
         });
-        
+
         $this->dispatch($r, 'GET', '/user');
-        
+
         $this->assertEquals(1, $dispatchedFilter);
-        
+
         $this->dispatch($r, 'GET', '/user2');
-        
+
         $this->assertEquals(2, $dispatchedFilter);
         $this->assertEquals(1, $dispatchedFilter2);
-        
+
     }
 
     public function testMultiplePrefixedGroups()
     {
         $r = $this->router();
 
-        $r->group(['prefix' => '/user'], function($router){
-            $router->addRoute('GET', '/', function() {
+        $r->group(['prefix' => '/user'], function ($router) {
+            $router->addRoute('GET', '/', function () {
 
             });
-            $router->group(['prefix' => '/foo'], function($router){
-                $router->addRoute('GET', '/{id}', function() {
+            $router->group(['prefix' => '/foo'], function ($router) {
+                $router->addRoute('GET', '/{id}', function () {
 
                 });
             });
@@ -411,12 +416,12 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
     public function testVariablePrefix()
     {
         $r = $this->router();
-        $r->group(['prefix' => '/demo/{variable}'], function($router){
-            $router->addRoute('GET', '/something', function($var){
-               return $var;
+        $r->group(['prefix' => '/demo/{variable}'], function ($router) {
+            $router->addRoute('GET', '/something', function ($var) {
+                return $var;
             });
 
-            $router->addRoute('GET', '/something-else', function($var){
+            $router->addRoute('GET', '/something-else', function ($var) {
                 return $var;
             });
         });
@@ -432,7 +437,7 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
 
     public function testValidMethods()
     {
-        $this->assertEquals(array(
+        $this->assertEquals([
             Route::ANY,
             Route::GET,
             Route::POST,
@@ -441,14 +446,14 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
             Route::DELETE,
             Route::HEAD,
             Route::OPTIONS,
-        ), $this->router()->getValidMethods());
+        ], $this->router()->getValidMethods());
     }
 
     public function testAnyRespondsToDeletePutAndGet()
     {
         $r = $this->router();
 
-        $r->any('/user', function(){
+        $r->any('/user', function () {
             return 'yes';
         });
 
@@ -460,20 +465,20 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals('yes', $this->dispatch($r, Route::OPTIONS, 'user'));
         $this->assertEquals('yes', $this->dispatch($r, 'MADE_UP_NON_STANDARD_METHOD', 'user'));
     }
-    
+
     public function testRestfulControllerMethods()
     {
 
         $r = $this->router();
 
-        $r->controller('/user', __NAMESPACE__ . '\\Test');
+        $r->controller('/user', __NAMESPACE__.'\\Test');
 
         $data = $r->getData();
 
         $this->assertEquals($r->getValidMethods(), array_keys($data->getStaticRoutes()['user/test']));
 
-        $this->assertEquals(array(Route::ANY), array_keys($data->getStaticRoutes()['user']));
-        $this->assertEquals(array(Route::ANY), array_keys($data->getStaticRoutes()['user/index']));
+        $this->assertEquals([Route::ANY], array_keys($data->getStaticRoutes()['user']));
+        $this->assertEquals([Route::ANY], array_keys($data->getStaticRoutes()['user/index']));
 
         $this->assertEquals('testRouteAnyIndex', $this->dispatch($r, Route::GET, 'user'));
         $this->assertEquals('testRouteAnyIndex', $this->dispatch($r, Route::POST, 'user'));
@@ -507,7 +512,7 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
     {
         $r = $this->router();
 
-        $r->controller('/user', __NAMESPACE__ . '\\Test');
+        $r->controller('/user', __NAMESPACE__.'\\Test');
 
         $this->dispatch($r, Route::GET, 'user/parameter-optional-required');
     }
@@ -520,7 +525,7 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
     {
         $r = $this->router();
 
-        $r->controller('/user', __NAMESPACE__ . '\\Test');
+        $r->controller('/user', __NAMESPACE__.'\\Test');
 
         $this->dispatch($r, Route::GET, 'user/parameter-required');
     }
@@ -533,7 +538,7 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
     {
         $r = $this->router();
 
-        $r->controller('/user', __NAMESPACE__ . '\\Test');
+        $r->controller('/user', __NAMESPACE__.'\\Test');
 
         $this->dispatch($r, Route::GET, 'user/camelcasehyphenated');
     }
@@ -542,7 +547,7 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
     {
         $r = $this->router();
 
-        $r->get('/user-name', function(){
+        $r->get('/user-name', function () {
             return 'test';
         });
 
@@ -558,7 +563,7 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
     {
         $r = $this->router();
 
-        $r->get($route, function(){
+        $r->get($route, function () {
             return implode(' ', func_get_args());
         });
 
@@ -569,89 +574,87 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
 
     public function characterfulRoutes()
     {
-        return array(
+        return [
             // route / dispatch URI / expected
-            array('/user-name/{name}', '/user-name/joe', 'joe'),
-            array('/user_name/{name}', '/user_name/joe', 'joe'),
-            array('/user+++name/{name}', '/user+++name/joe', 'joe'),
-            array('/user.name/{name_with_undersc0r3s_n_nums}', '/user.name/joe', 'joe'),
-            array('/us;er:nam;e/{name}', '/us;er:nam;e/joe', 'joe'),
-            array('/us%25r:na%20;e/{name}', '/us%25r:na%20;e/joe', 'joe'),
+            ['/user-name/{name}', '/user-name/joe', 'joe'],
+            ['/user_name/{name}', '/user_name/joe', 'joe'],
+            ['/user+++name/{name}', '/user+++name/joe', 'joe'],
+            ['/user.name/{name_with_undersc0r3s_n_nums}', '/user.name/joe', 'joe'],
+            ['/us;er:nam;e/{name}', '/us;er:nam;e/joe', 'joe'],
+            ['/us%25r:na%20;e/{name}', '/us%25r:na%20;e/joe', 'joe'],
 
             // Regex characters to check for proper escaping
-            array('/sta++++tic1', '/sta++++tic1', ''),
+            ['/sta++++tic1', '/sta++++tic1', ''],
 
-            array('/static1/{name}/static2/{country}', '/static1/joe/static2/uk', 'joe uk'),
-        );
+            ['/static1/{name}/static2/{country}', '/static1/joe/static2/uk', 'joe uk'],
+        ];
     }
 
     public function testRestfulMethods()
     {
-        
+
         $r = $this->router();
-        
+
         $methods = $r->getValidMethods();
-        
-        foreach($methods as $method)
-        {
-            $r->$method('/user','callback');
+
+        foreach ($methods as $method) {
+            $r->$method('/user', 'callback');
         }
-        
+
         $data = $r->getData();
-        
+
         $this->assertEquals($methods, array_keys($data->getStaticRoutes()['user']));
     }
-    
+
     public function provideFoundDispatchCases()
     {
         $cases = [];
-        
-         // 0 -------------------------------------------------------------------------------------->
 
-        $callback = function($r) {
-            $r->addRoute('GET', '/', function() {
+        // 0 -------------------------------------------------------------------------------------->
+
+        $callback = function ($r) {
+            $r->addRoute('GET', '/', function () {
                 return true;
             });
         };
-        
+
         $cases[] = ['GET', '', $callback, true];
 
         $cases[] = ['GET', '/', $callback, true];
-        
-        
-        $callback = function($r) {
-            $r->addRoute('GET', '', function() {
+
+
+        $callback = function ($r) {
+            $r->addRoute('GET', '', function () {
                 return true;
             });
         };
-        
+
         $cases[] = ['GET', '', $callback, true];
 
         $cases[] = ['GET', '/', $callback, true];
 
         // 0 -------------------------------------------------------------------------------------->
 
-        $callback = function($r) {
-            $r->addRoute('GET', '/resource/123/456', function() {
+        $callback = function ($r) {
+            $r->addRoute('GET', '/resource/123/456', function () {
                 return true;
             });
         };
 
         $cases[] = ['GET', '/resource/123/456', $callback, true];
-        
-        
-        
-        $callback = function($r) {
-            $r->addRoute('GET', 'resource/123/456', function() {
+
+
+        $callback = function ($r) {
+            $r->addRoute('GET', 'resource/123/456', function () {
                 return true;
             });
         };
 
         $cases[] = ['GET', 'resource/123/456', $callback, true];
-        
-        
-        $callback = function($r) {
-            $r->addRoute('GET', 'resource/123/456', function() {
+
+
+        $callback = function ($r) {
+            $r->addRoute('GET', 'resource/123/456', function () {
                 return true;
             });
         };
@@ -660,14 +663,14 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
 
         // 1 -------------------------------------------------------------------------------------->
 
-        $callback = function($r) {
-            $r->addRoute('GET', '/handler0', function() {
-                
+        $callback = function ($r) {
+            $r->addRoute('GET', '/handler0', function () {
+
             });
-            $r->addRoute('GET', '/handler1', function() {
-                
+            $r->addRoute('GET', '/handler1', function () {
+
             });
-            $r->addRoute('GET', '/handler2', function() {
+            $r->addRoute('GET', '/handler2', function () {
                 return true;
             });
         };
@@ -675,14 +678,14 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
 
         // 2 -------------------------------------------------------------------------------------->
 
-        $callback = function($r) {
-            $r->addRoute('GET', '/user/{name}/{id:[0-9]+}', function($name, $id) {
+        $callback = function ($r) {
+            $r->addRoute('GET', '/user/{name}/{id:[0-9]+}', function ($name, $id) {
                 return [$name, $id];
             });
-            $r->addRoute('GET', '/user/{id:[0-9]+}', function($id) {
+            $r->addRoute('GET', '/user/{id:[0-9]+}', function ($id) {
                 return $id;
             });
-            $r->addRoute('GET', '/user/{name}', function($name) {
+            $r->addRoute('GET', '/user/{name}', function ($name) {
                 return $name;
             });
         };
@@ -706,14 +709,14 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
 
         // 6 -------------------------------------------------------------------------------------->
 
-        $callback = function( $r) {
-            $r->addRoute('GET', '/user/{id:[0-9]+}', function() {
-                
+        $callback = function ($r) {
+            $r->addRoute('GET', '/user/{id:[0-9]+}', function () {
+
             });
-            $r->addRoute('GET', '/user/12345/extension', function() {
-                
+            $r->addRoute('GET', '/user/12345/extension', function () {
+
             });
-            $r->addRoute('GET', '/user/{id:[0-9]+}.{extension}', function($id, $extension) {
+            $r->addRoute('GET', '/user/{id:[0-9]+}.{extension}', function ($id, $extension) {
                 return [$id, $extension];
             });
         };
@@ -722,20 +725,20 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
 
         // 7 ----- Test GET method fallback on HEAD route miss ------------------------------------>
 
-        $callback = function($r) {
-            $r->addRoute('GET', '/user/{name}', function($name) {
+        $callback = function ($r) {
+            $r->addRoute('GET', '/user/{name}', function ($name) {
                 return $name;
             });
-            $r->addRoute('GET', '/user/{name}/{id:[0-9]+}', function($name, $id) {
+            $r->addRoute('GET', '/user/{name}/{id:[0-9]+}', function ($name, $id) {
                 return [$name, $id];
             });
-            $r->addRoute('GET', '/static0', function() {
+            $r->addRoute('GET', '/static0', function () {
                 return 'static0';
             });
-            $r->addRoute('GET', '/static1', function() {
-                
+            $r->addRoute('GET', '/static1', function () {
+
             });
-            $r->addRoute('HEAD', '/static1', function() {
+            $r->addRoute('HEAD', '/static1', function () {
                 return 'static1head';
             });
         };
@@ -758,110 +761,110 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
 
         // x -------------------------------------------------------------------------------------->
 
-        
+
         // 11 -------------------------------------------------------------------------------------->
         // Test optional parameter
-        $callback = function($r) {
-            $r->addRoute('GET', '/user/{name}/{id:[0-9]+}?', function($name, $id = null) {
+        $callback = function ($r) {
+            $r->addRoute('GET', '/user/{name}/{id:[0-9]+}?', function ($name, $id = null) {
                 return [$name, $id];
             });
         };
 
-        $cases[] = ['GET', '/user/rdlowrey', $callback, array('rdlowrey', null)];
-        
+        $cases[] = ['GET', '/user/rdlowrey', $callback, ['rdlowrey', null]];
+
         // 12
-        $cases[] = ['GET', '/user/rdlowrey/23', $callback, array('rdlowrey', '23')];
-        
+        $cases[] = ['GET', '/user/rdlowrey/23', $callback, ['rdlowrey', '23']];
+
         // 13 -------------------------------------------------------------------------------------->
         // Test multiple optional parameters
-        $callback = function($r) {
-            $r->addRoute('GET', '/user/{name}/{id:[0-9]+}?/{other}?', function($name, $id = null, $other = null) {
+        $callback = function ($r) {
+            $r->addRoute('GET', '/user/{name}/{id:[0-9]+}?/{other}?', function ($name, $id = null, $other = null) {
                 return [$name, $id, $other];
             });
         };
 
-        $cases[] = ['GET', '/user/rdlowrey', $callback, array('rdlowrey', null, null)];
-        
-        // 14
-        $cases[] = ['GET', '/user/rdlowrey/23', $callback, array('rdlowrey', '23', null)];
-        
-        //15
-        $cases[] = ['GET', '/user/rdlowrey/23/blah', $callback, array('rdlowrey', '23', 'blah')];
-        
+        $cases[] = ['GET', '/user/rdlowrey', $callback, ['rdlowrey', null, null]];
 
-        $callback = function($r) {
-            $r->addRoute('GET', '/user/random_{name}', function($name) {
+        // 14
+        $cases[] = ['GET', '/user/rdlowrey/23', $callback, ['rdlowrey', '23', null]];
+
+        //15
+        $cases[] = ['GET', '/user/rdlowrey/23/blah', $callback, ['rdlowrey', '23', 'blah']];
+
+
+        $callback = function ($r) {
+            $r->addRoute('GET', '/user/random_{name}', function ($name) {
                 return $name;
             });
         };
 
         //16
         $cases[] = ['GET', '/user/random_rdlowrey', $callback, 'rdlowrey'];
-        
-        
-        $callback = function($r) {
-            $r->addRoute('GET', '/user/random_{name}?', function($name = null) {
+
+
+        $callback = function ($r) {
+            $r->addRoute('GET', '/user/random_{name}?', function ($name = null) {
                 return $name;
             });
         };
 
         //17
         $cases[] = ['GET', '/user/random_rdlowrey', $callback, 'rdlowrey'];
-         //18
+        //18
         $cases[] = ['GET', '/user/random_', $callback, null];
-        
-        $callback = function($r) {
-            $r->addRoute('GET', '{name}?', function($name = null) {
+
+        $callback = function ($r) {
+            $r->addRoute('GET', '{name}?', function ($name = null) {
                 return $name;
             });
         };
 
         //19
         $cases[] = ['GET', 'rdlowrey', $callback, 'rdlowrey'];
-         //20
+        //20
         $cases[] = ['GET', '/', $callback, null];
-        
+
         // 11 -------------------------------------------------------------------------------------->
         // Test shortcuts parameter
-        $callback = function($r) {
-            $r->addRoute('GET', '/user/{id:i}', function($id) {
+        $callback = function ($r) {
+            $r->addRoute('GET', '/user/{id:i}', function ($id) {
                 return $id;
             });
-            $r->addRoute('GET', '/user1/{idname:a}', function($idname) {
-                return array($idname);
+            $r->addRoute('GET', '/user1/{idname:a}', function ($idname) {
+                return [$idname];
             });
-            $r->addRoute('GET', '/user2/{hexcode:h}', function($hexcode) {
-                return array($hexcode);
+            $r->addRoute('GET', '/user2/{hexcode:h}', function ($hexcode) {
+                return [$hexcode];
             });
-            $r->addRoute('GET', '/user3/{id:i}/{hexcode:h}?', function($id, $hexcode = null) {
-                return array($id, $hexcode);
+            $r->addRoute('GET', '/user3/{id:i}/{hexcode:h}?', function ($id, $hexcode = null) {
+                return [$id, $hexcode];
             });
-            $r->addRoute('GET', '/user4/{slug:c}', function($slug) {
-                return array($slug);
+            $r->addRoute('GET', '/user4/{slug:c}', function ($slug) {
+                return [$slug];
             });
         };
 
         $cases[] = ['GET', '/user/21', $callback, '21'];
-        $cases[] = ['GET', '/user1/abcdezzASd123', $callback, array('abcdezzASd123')];
-        $cases[] = ['GET', '/user2/abcde123', $callback, array('abcde123')];
-        $cases[] = ['GET', '/user3/21/abcde123', $callback, array('21','abcde123')];
-        $cases[] = ['GET', '/user3/21', $callback, array('21', null)];
-        $cases[] = ['GET', '/user4/test_something-123', $callback, array('test_something-123')];
-        
-        
+        $cases[] = ['GET', '/user1/abcdezzASd123', $callback, ['abcdezzASd123']];
+        $cases[] = ['GET', '/user2/abcde123', $callback, ['abcde123']];
+        $cases[] = ['GET', '/user3/21/abcde123', $callback, ['21', 'abcde123']];
+        $cases[] = ['GET', '/user3/21', $callback, ['21', null]];
+        $cases[] = ['GET', '/user4/test_something-123', $callback, ['test_something-123']];
+
+
         // 11 -------------------------------------------------------------------------------------->
         // Test shortcuts parameter
-        $callback = function($r) {
-            $r->addRoute('GET', '/user/{id}?/{id2}?/{id3}?', function() {
+        $callback = function ($r) {
+            $r->addRoute('GET', '/user/{id}?/{id2}?/{id3}?', function () {
                 return 'first';
             });
-            $r->addRoute('GET', '/user2/{id}?', function() {
+            $r->addRoute('GET', '/user2/{id}?', function () {
                 return 'second';
             });
-            $r->addRoute('GET', '/user3/{id}?', function() {
+            $r->addRoute('GET', '/user3/{id}?', function () {
                 return 'third';
             });
-            $r->addRoute('GET', '/user4/{id}?/{id2}?/{id3}?', function() {
+            $r->addRoute('GET', '/user4/{id}?/{id2}?/{id3}?', function () {
                 return 'fourth';
             });
         };
@@ -877,14 +880,14 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
         $cases[] = ['GET', '/user4/abcdezzASd123', $callback, 'fourth'];
         $cases[] = ['GET', '/user4/abcde123', $callback, 'fourth'];
         $cases[] = ['GET', '/user4/21', $callback, 'fourth'];
-        
+
         // 11 -------------------------------------------------------------------------------------->
         // Test shortcuts parameter
-        $callback = function($r) {
-            $r->addRoute('GET', 'ext/{asset}.json', function($asset) {
-                return $asset . ' jsonencoded';
+        $callback = function ($r) {
+            $r->addRoute('GET', 'ext/{asset}.json', function ($asset) {
+                return $asset.' jsonencoded';
             });
-            $r->addRoute('GET', 'ext/{asset}', function($asset) {
+            $r->addRoute('GET', 'ext/{asset}', function ($asset) {
                 return $asset;
             });
         };
@@ -894,8 +897,8 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
 
         // 12 -------------------------------------------------------------------------------------->
         // Test \d{3,4} style quantifiers
-        $callback = function($r) {
-            $r->addRoute('GET', 'server/{ip:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}}/{name}/{newname}?', function($ip, $name, $newname = null) {
+        $callback = function ($r) {
+            $r->addRoute('GET', 'server/{ip:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}}/{name}/{newname}?', function ($ip, $name, $newname = null) {
                 return trim("$ip $name $newname");
             });
         };
@@ -906,8 +909,8 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
 
         // 13 -------------------------------------------------------------------------------------->
         // Test \d{3,4} style quantifiers
-        $callback = function($r) {
-            $r->addRoute('GET', 'date/{year:\d{4}}/{month:\d+}?', function($year, $month) {
+        $callback = function ($r) {
+            $r->addRoute('GET', 'date/{year:\d{4}}/{month:\d+}?', function ($year, $month) {
                 return trim("$year $month");
             });
         };
@@ -916,8 +919,8 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
 
         // 14 -------------------------------------------------------------------------------------->
         // Test \d{3,4} style quantifiers
-        $callback = function($r) {
-            $r->addRoute('GET', 'date/{year:\d{4}}/{month:\d{2}}', function($year, $month) {
+        $callback = function ($r) {
+            $r->addRoute('GET', 'date/{year:\d{4}}/{month:\d{2}}', function ($year, $month) {
                 return trim("$year $month");
             });
         };
@@ -933,7 +936,7 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
 
         // 0 -------------------------------------------------------------------------------------->
 
-        $callback = function( $r) {
+        $callback = function ($r) {
             $r->addRoute('GET', '/resource/123/456', 'handler0');
         };
 
@@ -958,7 +961,7 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
 
         // 3 -------------------------------------------------------------------------------------->
 
-        $callback = function( $r) {
+        $callback = function ($r) {
             $r->addRoute('GET', '/handler0', 'handler0');
             $r->addRoute('GET', '/handler1', 'handler1');
             $r->addRoute('GET', '/handler2', 'handler2');
@@ -971,7 +974,7 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
 
         // 4 -------------------------------------------------------------------------------------->
 
-        $callback = function( $r) {
+        $callback = function ($r) {
             $r->addRoute('GET', '/user/{name}/{id:[0-9]+}', 'handler0');
             $r->addRoute('GET', '/user/{id:[0-9]+}', 'handler1');
             $r->addRoute('GET', '/user/{name}', 'handler2');
@@ -991,23 +994,23 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
 
         // x -------------------------------------------------------------------------------------->
 
-        $callback = function($r) {
-            $r->addRoute('GET', '/user/random_{name}?', function($name = null) {
+        $callback = function ($r) {
+            $r->addRoute('GET', '/user/random_{name}?', function ($name = null) {
                 return $name;
             });
         };
 
         //17
         $cases[] = ['GET', 'rdlowrey', $callback];
-        
+
         //19
         $cases[] = ['GET', '/user/rdlowrey', $callback, null];
 
 
         // 20 -------------------------------------------------------------------------------------->
         // Test \d{3,4} style quantifiers
-        $callback = function($r) {
-            $r->addRoute('GET', 'server/{ip:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}}', function($year) {
+        $callback = function ($r) {
+            $r->addRoute('GET', 'server/{ip:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}}', function ($year) {
                 return trim("$year");
             });
         };
@@ -1015,7 +1018,7 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
         $cases[] = ['GET', 'server/1044.10.10.10', $callback, null];
         $cases[] = ['GET', 'server/0.0.0', $callback, null];
         $cases[] = ['GET', 'server/.2.23.111', $callback, null];
-        
+
         return $cases;
     }
 
@@ -1025,7 +1028,7 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
 
         // 0 -------------------------------------------------------------------------------------->
 
-        $callback = function( $r) {
+        $callback = function ($r) {
             $r->addRoute('GET', '/resource/123/456', 'handler0');
         };
 
@@ -1037,7 +1040,7 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
 
         // 1 -------------------------------------------------------------------------------------->
 
-        $callback = function( $r) {
+        $callback = function ($r) {
             $r->addRoute('GET', '/resource/123/456', 'handler0');
             $r->addRoute('POST', '/resource/123/456', 'handler1');
             $r->addRoute('PUT', '/resource/123/456', 'handler2');
@@ -1051,7 +1054,7 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase {
 
         // 2 -------------------------------------------------------------------------------------->
 
-        $callback = function( $r) {
+        $callback = function ($r) {
             $r->addRoute('GET', '/user/{name}/{id:[0-9]+}', 'handler0');
             $r->addRoute('POST', '/user/{name}/{id:[0-9]+}', 'handler1');
             $r->addRoute('PUT', '/user/{name}/{id:[0-9]+}', 'handler2');

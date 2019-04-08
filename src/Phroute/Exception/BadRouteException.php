@@ -1,4 +1,7 @@
 <?php namespace Phroute\Phroute\Exception;
 
-class BadRouteException extends \LogicException {
+use LogicException;
+
+class BadRouteException extends LogicException
+{
 }

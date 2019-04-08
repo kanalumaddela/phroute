@@ -1,4 +1,6 @@
 <?php namespace Phroute\Phroute\Exception;
 
-class HttpRouteNotFoundException extends HttpException {}
+class HttpRouteNotFoundException extends HttpException
+{
+}
 

@@ -3,9 +3,11 @@
 
 /**
  * Interface RouteDataInterface
+ *
  * @package Phroute\Phroute
  */
-interface RouteDataInterface {
+interface RouteDataInterface
+{
 
     /**
      * @return array

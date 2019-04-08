@@ -3,9 +3,11 @@
 
 /**
  * Interface RouteDataProviderInterface
+ *
  * @package Phroute\Phroute
  */
-interface RouteDataProviderInterface {
+interface RouteDataProviderInterface
+{
 
     /**
      * @return mixed

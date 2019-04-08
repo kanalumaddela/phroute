@@ -1,12 +1,14 @@
 <?php namespace Phroute\Phroute;
 
 use Phroute\Phroute\Exception\BadRouteException;
+
 /**
  * Parses routes of the following form:
  *
  * "/user/{name}/{id:[0-9]+}?"
  */
-class RouteParser {
+class RouteParser
+{
 
     /**
      * Search through the given route looking for dynamic portions.
@@ -14,14 +16,15 @@ class RouteParser {
      * Using ~ as the regex delimiter.
      *
      * We start by looking for a literal '{' character followed by any amount of whitespace.
-     * The next portion inside the parentheses looks for a parameter name containing alphanumeric characters or underscore.
+     * The next portion inside the parentheses looks for a parameter name containing alphanumeric characters or
+     * underscore.
      *
      * After this we look for the ':\d+' and ':[0-9]+' style portion ending with a closing '}' character.
      *
      * Finally we look for an optional '?' which is used to signify an optional route.
      */
-    const VARIABLE_REGEX = 
-"~\{
+    const VARIABLE_REGEX =
+        "~\{
     \s* ([a-zA-Z0-9_]*) \s*
     (?:
         : \s* ([^{]+(?:\{.*?\})?)
@@ -36,11 +39,11 @@ class RouteParser {
     private $parts;
 
     private $reverseParts;
-    
+
     private $partsCounter;
-    
+
     private $variables;
-    
+
     private $regexOffset;
 
     /**
@@ -48,59 +51,58 @@ class RouteParser {
      *
      * @var array
      */
-    private $regexShortcuts = array(
-        ':i}'  => ':[0-9]+}',
-	':a}'  => ':[0-9A-Za-z]+}',
-	':h}'  => ':[0-9A-Fa-f]+}',
-        ':c}'  => ':[a-zA-Z0-9+_\-\.]+}'
-    );
+    private $regexShortcuts = [
+        ':i}' => ':[0-9]+}',
+        ':a}' => ':[0-9A-Za-z]+}',
+        ':h}' => ':[0-9A-Fa-f]+}',
+        ':c}' => ':[a-zA-Z0-9+_\-\.]+}',
+    ];
 
     /**
      * Parse a route returning the correct data format to pass to the dispatch engine.
      *
      * @param $route
+     *
      * @return array
      */
     public function parse($route)
     {
         $this->reset();
-        
-        $route = strtr($route, $this->regexShortcuts);
-        
-        if (!$matches = $this->extractVariableRouteParts($route))
-        {
-            $reverse = array(
-                'variable'  => false,
-                'value'     => $route
-            );
 
-            return [[$route], array($reverse)];
+        $route = strtr($route, $this->regexShortcuts);
+
+        if (!$matches = $this->extractVariableRouteParts($route)) {
+            $reverse = [
+                'variable' => false,
+                'value'    => $route,
+            ];
+
+            return [[$route], [$reverse]];
         }
 
         foreach ($matches as $set) {
 
             $this->staticParts($route, $set[0][1]);
-                        
+
             $this->validateVariable($set[1][0]);
 
             $regexPart = (isset($set[2]) ? trim($set[2][0]) : self::DEFAULT_DISPATCH_REGEX);
-            
+
             $this->regexOffset = $set[0][1] + strlen($set[0][0]);
 
-            $match = '(' . $regexPart . ')';
+            $match = '('.$regexPart.')';
 
             $isOptional = substr($set[0][0], -1) === '?';
-            
-            if($isOptional)
-            {
+
+            if ($isOptional) {
                 $match = $this->makeOptional($match);
             }
 
-            $this->reverseParts[$this->partsCounter] = array(
-                'variable'  => true,
-                'optional'  => $isOptional,
-                'name'      => $set[1][0]
-            );
+            $this->reverseParts[$this->partsCounter] = [
+                'variable' => true,
+                'optional' => $isOptional,
+                'name'     => $set[1][0],
+            ];
 
             $this->parts[$this->partsCounter++] = $match;
         }
@@ -115,13 +117,13 @@ class RouteParser {
      */
     private function reset()
     {
-        $this->parts = array();
-        
-        $this->reverseParts = array();
-    
+        $this->parts = [];
+
+        $this->reverseParts = [];
+
         $this->partsCounter = 0;
 
-        $this->variables = array();
+        $this->variables = [];
 
         $this->regexOffset = 0;
     }
@@ -130,12 +132,12 @@ class RouteParser {
      * Return any variable route portions from the given route.
      *
      * @param $route
+     *
      * @return mixed
      */
     private function extractVariableRouteParts($route)
     {
-        if(preg_match_all(self::VARIABLE_REGEX, $route, $matches, PREG_OFFSET_CAPTURE | PREG_SET_ORDER))
-        {
+        if (preg_match_all(self::VARIABLE_REGEX, $route, $matches, PREG_OFFSET_CAPTURE | PREG_SET_ORDER)) {
             return $matches;
         }
     }
@@ -148,22 +150,30 @@ class RouteParser {
     {
         $static = preg_split('~(/)~u', substr($route, $this->regexOffset, $nextOffset - $this->regexOffset), 0, PREG_SPLIT_DELIM_CAPTURE);
 
-        foreach($static as $staticPart)
-        {
-            if($staticPart)
-            {
+        foreach ($static as $staticPart) {
+            if ($staticPart) {
                 $quotedPart = $this->quote($staticPart);
 
                 $this->parts[$this->partsCounter] = $quotedPart;
 
-                $this->reverseParts[$this->partsCounter] = array(
-                    'variable'  => false,
-                    'value'     => $staticPart
-                );
-                
+                $this->reverseParts[$this->partsCounter] = [
+                    'variable' => false,
+                    'value'    => $staticPart,
+                ];
+
                 $this->partsCounter++;
             }
         }
+    }
+
+    /**
+     * @param $part
+     *
+     * @return string
+     */
+    private function quote($part)
+    {
+        return preg_quote($part, '~');
     }
 
     /**
@@ -171,8 +181,7 @@ class RouteParser {
      */
     private function validateVariable($varName)
     {
-        if (isset($this->variables[$varName]))
-        {
+        if (isset($this->variables[$varName])) {
             throw new BadRouteException("Cannot use the same placeholder '$varName' twice");
         }
 
@@ -181,27 +190,18 @@ class RouteParser {
 
     /**
      * @param $match
+     *
      * @return string
      */
     private function makeOptional($match)
     {
         $previous = $this->partsCounter - 1;
-        
-        if(isset($this->parts[$previous]) && $this->parts[$previous] === '/')
-        {
+
+        if (isset($this->parts[$previous]) && $this->parts[$previous] === '/') {
             $this->partsCounter--;
-            $match = '(?:/' . $match . ')';
+            $match = '(?:/'.$match.')';
         }
 
-        return $match . '?';
-    }
-
-    /**
-     * @param $part
-     * @return string
-     */
-    private function quote($part)
-    {
-        return preg_quote($part, '~');
+        return $match.'?';
     }
 }
